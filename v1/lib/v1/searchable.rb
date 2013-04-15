@@ -67,8 +67,8 @@ module V1
       end
 
       begin
-        if defined?(Rails) && search.respond_to?(:to_curl)
-          Rails.logger.info "CURL: #{search.to_curl}"
+        if (Rails.env.development? rescue false)
+          Rails.logger.debug "CURL: #{search.to_curl}"
         end
         return wrap_results(search, params)
       rescue Tire::Search::SearchRequestFailed => e
