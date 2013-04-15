@@ -27,11 +27,10 @@ module V1
       raise "Modules extending Searchable must define resource() method"
     end
 
-    def build_queries(resource, search, params)
+    def build_queries(resource, filtered_search, params)
       queries = []
-      queries << Searchable::Query.build_all(resource, search, params)
-      queries << Searchable::Filter.build_all(resource, search, params)
-      #      Searchable::Facet.build_all(resource, search, params, !queries.any?)
+      queries << Searchable::Query.build_all(resource, filtered_search, params)
+      queries << Searchable::Filter.build_all(resource, filtered_search, params)
       queries.any?
     end
 

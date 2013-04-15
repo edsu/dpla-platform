@@ -11,7 +11,7 @@ Dpla::Application.configure do
 
   # Show full error reports and disable caching
   config.consider_all_requests_local       = true
-  config.action_controller.perform_caching = false
+  config.action_controller.perform_caching = true
 
   # Don't care if the mailer can't send
   config.action_mailer.raise_delivery_errors = false
@@ -41,5 +41,7 @@ Dpla::Application.configure do
   ActionMailer::Base.default from: "api-support@dp.la"
 
   V1::Config.enable_tire_logging(Rails.env)
+
+  config.cache_store = :file_store, "tmp/v2-cache"
   
 end

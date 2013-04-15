@@ -18,46 +18,76 @@ module V1
       params.delete 'api_key'
     end
 
+    def cache_key(params)
+      # cache without api_key, callback, _, controller, action params keys
+      excluded = %w( api_key callback _ controller action )
+      key_hash = params.dup
+      key_hash.delete_if {|k| excluded.include? k }
+      key_hash
+    end
+
     def items
       begin
-        render :json => render_json(Item.search(params), params)
+        Rails.logger.debug "CK!: #{ cache_key(params) }"
+
+        results = nil
+#        Rails.cache.fetch(cache_key(params), :raw => true) do
+#          Rails.logger.debug "CACHE M!SS...."
+          results = Item.search(params).to_json
+#        end
+        render :json => render_as_json(results, params)
       rescue SearchError => e
         render_error(e, params)
       end
     end
 
     def fetch
-      results = []
-      begin 
-        render :json => render_json(Item.fetch(params[:ids].split(/,\s*/)), params)
+      begin
+        results = nil
+        results = Item.fetch(params[:ids].split(/,\s*/)).to_json
+        render :json => render_as_json(results, params)
       rescue NotFoundSearchError => e
         render_error(e, params)
       end
     end
 
     def collections
+      
       begin
-        render :json => render_json(Collection.search(params), params)
+        results = nil
+        results = Collection.search(params).to_json
+        render :json => render_as_json(results, params)
       rescue SearchError => e
         render_error(e, params)
       end
     end
 
     def fetch_collections
-      begin 
-        render :json => render_json(Collection.fetch(params[:ids].split(/,\s*/)), params)
+      begin
+        results = nil
+        results = Collection.fetch(params[:ids].split(/,\s*/)).to_json
+        render :json => render_as_json(results, params)
       rescue NotFoundSearchError => e
         render_error(e, params)
       end
 
     end
 
+    def render_as_json(results, params)
+      # Handles optional JSONP callback param
+      if params['callback'].present?
+        params['callback'] + '(' + results.to_s + ')'
+      else
+        results
+      end
+    end
+
     def render_json(results, params)
       # Handles optional JSONP callback param
       if params['callback'].present?
-        params['callback'] + '(' + results.to_json + ')'
+        params['callback'] + '(' + results.to_s + ')'
       else
-        results.to_json
+        results
       end
     end
 

@@ -15,8 +15,10 @@ module V1
     end
 
     describe "#enable_tire_logging" do
-      Tire.should_receieve(:configure)
-      subject.enable_tire_logging('env_string')
+      it "should receive a configure call (loose test)" do
+        Tire.should_receive(:configure)
+        subject.enable_tire_logging('env_string')
+      end
     end
     
     describe "#dpla" do
