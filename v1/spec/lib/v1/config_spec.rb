@@ -13,6 +13,11 @@ module V1
         expect(V1::Config::REPOSITORY_DATABASE).to eq 'dpla'
       end
     end
+
+    describe "#enable_tire_logging" do
+      Tire.should_receieve(:configure)
+      subject.enable_tire_logging('env_string')
+    end
     
     describe "#dpla" do
       context "when the dpla config file does not exist" do

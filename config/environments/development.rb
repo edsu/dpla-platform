@@ -39,5 +39,7 @@ Dpla::Application.configure do
   config.action_mailer.default_url_options = { :host => 'localhost:3000' }
   
   ActionMailer::Base.default from: "api-support@dp.la"
+
+  V1::Config.enable_tire_logging(Rails.env)
   
 end
