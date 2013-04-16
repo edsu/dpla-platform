@@ -1,4 +1,5 @@
 require_dependency "v1/application_controller"
+require 'digest/md5'
 
 #TODO: eliminate new duplication between resources here and break this into ItemsController and CollectionsController (to invert the current topology)
 #TODO: Consider handling all our own exception classes in a: rescue_from SearchError
@@ -18,23 +19,38 @@ module V1
       params.delete 'api_key'
     end
 
-    def cache_key(params)
-      # cache without api_key, callback, _, controller, action params keys
-      excluded = %w( api_key callback _ controller action )
-      key_hash = params.dup
-      key_hash.delete_if {|k| excluded.include? k }
-      key_hash
+    def base_cache_key(resource, action, unique_key='')
+      [
+       'v2',
+       resource,
+       action,
+       Digest::MD5.hexdigest( unique_key )
+      ].join('-')  #.tap {|t| logger.debug "CKEY: #{t}" }
     end
 
+    def search_cache_key(resource, params)
+      # Set up to allow semi-targeted manual cache expiration
+      excluded = %w( api_key callback _ controller )
+      key_hash = params.dup
+      action = key_hash.delete('action')
+      key_hash.delete_if {|k| excluded.include? k }
+
+      base_cache_key(resource, action, key_hash.sort.to_s )
+    end
+
+    def fetch_cache_key(resource, params)
+      # Set up to allow semi-targeted manual cache expiration
+      action = params['action']
+      
+      ids = params['ids'].to_s.split(/,\s*/)
+      base_cache_key(resource, action, ids.sort.to_s )
+    end
+    
     def items
       begin
-        Rails.logger.debug "CK!: #{ cache_key(params) }"
-
-        results = nil
-#        Rails.cache.fetch(cache_key(params), :raw => true) do
-#          Rails.logger.debug "CACHE M!SS...."
-          results = Item.search(params).to_json
-#        end
+        results = Rails.cache.fetch(search_cache_key('items', params), :raw => true) do
+          Item.search(params).to_json
+        end
         render :json => render_as_json(results, params)
       rescue SearchError => e
         render_error(e, params)
@@ -43,8 +59,9 @@ module V1
 
     def fetch
       begin
-        results = nil
-        results = Item.fetch(params[:ids].split(/,\s*/)).to_json
+        results = Rails.cache.fetch(fetch_cache_key('items', params), :raw => true) do
+          Item.fetch(params[:ids].split(/,\s*/)).to_json
+        end
         render :json => render_as_json(results, params)
       rescue NotFoundSearchError => e
         render_error(e, params)
@@ -52,10 +69,10 @@ module V1
     end
 
     def collections
-      
       begin
-        results = nil
-        results = Collection.search(params).to_json
+        results = Rails.cache.fetch(search_cache_key('collections', params), :raw => true) do
+          Collection.search(params).to_json
+        end
         render :json => render_as_json(results, params)
       rescue SearchError => e
         render_error(e, params)
@@ -64,8 +81,9 @@ module V1
 
     def fetch_collections
       begin
-        results = nil
-        results = Collection.fetch(params[:ids].split(/,\s*/)).to_json
+        results = Rails.cache.fetch(fetch_cache_key('collections', params), :raw => true) do
+          Collection.fetch(params[:ids].split(/,\s*/)).to_json
+        end
         render :json => render_as_json(results, params)
       rescue NotFoundSearchError => e
         render_error(e, params)

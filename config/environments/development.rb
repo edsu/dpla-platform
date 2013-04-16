@@ -42,6 +42,6 @@ Dpla::Application.configure do
 
   V1::Config.enable_tire_logging(Rails.env)
 
-  config.cache_store = :file_store, "tmp/v2-cache"
+  config.cache_store = :file_store, "tmp/api-cache"
   
 end
